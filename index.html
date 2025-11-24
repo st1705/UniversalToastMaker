@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Universal Toastmaker: Wall Street Edition</title>
+    <title>Universal Toastmaker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -102,6 +102,16 @@
         .auto-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 12px; }
         input[type="number"] { background: #374151; border: 1px solid var(--border); color: white; padding: 4px; width: 60px; border-radius: 4px; }
         input[type="checkbox"] { transform: scale(1.2); cursor: pointer; }
+
+        /* Batch Buttons */
+        .btn-batch {
+            background: #374151; border: 1px solid #4b5563; color: #9ca3af;
+            font-size: 10px; padding: 4px 8px; border-radius: 4px; min-width: 35px;
+        }
+        .btn-batch.active {
+            background: var(--accent); color: black; border-color: var(--accent); font-weight: bold;
+        }
+        .btn-batch:hover:not(.active) { background: #4b5563; }
 
         .price-tracker {
             background: #111827;
@@ -216,14 +226,30 @@
                 </div>
             </div>
 
-            <div class="auto-row">
+            <!-- BATCH SELECTOR -->
+            <div class="auto-row" style="margin-top:10px;">
+                <span>Batch Size:</span>
+                <div style="display:flex; gap:4px;">
+                    <button class="btn-batch active" id="batch-10" onclick="setBatch(10)">10</button>
+                    <button class="btn-batch" id="batch-100" onclick="setBatch(100)" style="display:none">100</button>
+                    <button class="btn-batch" id="batch-1000" onclick="setBatch(1000)" style="display:none">1k</button>
+                    <button class="btn-batch" id="batch-10000" onclick="setBatch(10000)" style="display:none">10k</button>
+                </div>
+            </div>
+
+            <!-- BATCH COST DISPLAY -->
+            <div style="text-align:right; font-size:11px; color:#9ca3af; margin-bottom:8px;">
+                Est. Cost: <span id="val-auto-cost" style="color:white; font-weight:bold;">$0.00</span>
+            </div>
+
+            <div class="auto-row" style="margin-top:5px;">
                 <span><strong>Price Cap:</strong><br><span style="font-size:10px;color:#9ca3af">(Max price to buy at)</span></span>
                 <div style="display:flex; align-items:center; gap:5px;">
                     $ <input type="number" id="inp-auto-threshold" value="0.70" step="0.05" min="0.10" max="5.00">
                 </div>
             </div>
             <div style="font-size:10px; color:#9ca3af; margin-top:5px; border-top:1px dashed #374151; padding-top:5px;">
-                If Market Price ≤ Price Cap, system buys 10 bread automatically.
+                Auto-buys <span id="disp-batch-size">10</span> bread if Price ≤ Cap.
             </div>
         </div>
 
@@ -307,33 +333,29 @@
         <div class="stat-row"><span>Toast Sold</span><strong id="stat-sold">0</strong></div>
         <div class="stat-row"><span>Toast Produced</span><strong id="stat-produced">0</strong></div>
         <div class="stat-row"><span>Bread Cost (Avg)</span><strong id="stat-bread-cost">$0</strong></div>
+        <div class="stat-row"><span>Bread Acquired</span><strong id="stat-bread-bought">0</strong></div>
         <div class="stat-row"><span>Portfolio Change</span><strong id="stat-stock-trend">--</strong></div>
     </div>
 
 </div>
 
 <script>
-/* ---------------- CONFIG (REBALANCED) ---------------- */
+/* ---------------- CONFIG ---------------- */
 const CONFIG = {
     tickRate: 5000, 
     costScale: 1.15,
-    aiScale: 1.8, // AI gets expensive faster
+    aiScale: 1.8, 
     units: {
-        // Furnace is crucial now.
         furnace: { id: 'furnace', name: 'Heat Furnace', baseCost: 30, heatGen: 3 },
-        // Toaster uses heat. Need 1 furnace per 3 toasters approx.
         toaster: { id: 'toaster', name: 'Auto-Toaster', baseCost: 15, bread: 1, heat: 1, toast: 1 },
-        // Industrial is efficiency king.
         industrial: { id: 'industrial', name: 'Ind. Toaster', baseCost: 200, bread: 5, heat: 3, toast: 8 }, 
-        // Synth creates bread from money.
         synth: { id: 'synth', name: 'Bread Synth', baseCost: 1000, money: 2, bread: 8 }, 
-        // Endgame heat
         fusion: { id: 'fusion', name: 'Fusion Oven', baseCost: 5000, heatGen: 100 }
     },
     ai: {
         eff: { id: 'eff', name: 'Eff. Core', baseCost: 300, desc: '-5% Heat Use' },
         gen: { id: 'gen', name: 'Genomics', baseCost: 600, desc: '+10% Synth Output' },
-        supply: { id: 'supply', name: 'Auto-Supply', baseCost: 800, desc: 'Unlocks Auto-Buy' },
+        supply: { id: 'supply', name: 'Auto-Supply', baseCost: 800, desc: 'Lvl 1: 10/tick. Lvl 2: 100/tick...' },
         mkt: { id: 'mkt', name: 'Market AI', baseCost: 1200, desc: '-5% Base Bread Cost' }
     }
 };
@@ -351,8 +373,8 @@ const NEWS_ARTICLES = [
 
 /* ---------------- STATE ---------------- */
 let state = {
-    money: 50, // Starting money lowered
-    loan: 0,   // New Loan Tracking
+    money: 50,
+    loan: 0,
     bread: 20,
     toast: 0,
     heat: 0,
@@ -367,11 +389,11 @@ let state = {
     newsTimer: 0,
     userPrice: 2.00,
     breadMarket: {
-        cost: 0.50, // Base cost is much cheaper now
+        cost: 0.50,
         history: [0.50, 0.50, 0.50],
         trend: 'flat'
     },
-    autoBuy: { enabled: false, threshold: 0.60 },
+    autoBuy: { enabled: false, threshold: 0.60, batchSize: 10 },
     lastStats: { revenue: 0, sold: 0, produced: 0, breadBought: 0, stockDelta: 0, interestPaid: 0 }
 };
 
@@ -392,7 +414,6 @@ function gameTick() {
     }
 
     // 2. Market Bread Price
-    // Base 0.50, fluctuates between 0.10 and 1.00 usually
     let discount = Math.min(0.5, state.ai.mkt * 0.05);
     let volatility = (Math.random() * 0.8) + 0.6; // 0.6x to 1.4x
     let rawPrice = 0.50 * volatility * (1 - discount);
@@ -413,7 +434,7 @@ function gameTick() {
 
     // 3. News
     state.newsTimer++;
-    if(state.newsTimer > 12) { // Slightly more frequent news
+    if(state.newsTimer > 12) { 
         if(Math.random() > 0.4) {
             generateNews();
             state.newsTimer = 0;
@@ -441,15 +462,17 @@ function gameTick() {
         state.bread += run * outPs;
     }
 
-    // Auto Buy
+    // Auto Buy (SCALABLE BATCHES)
     let autoBought = 0;
     if(state.ai.supply > 0 && state.autoBuy.enabled) {
         if(state.breadMarket.cost <= state.autoBuy.threshold) {
-            const batchCost = state.breadMarket.cost * 10;
+            const amount = state.autoBuy.batchSize;
+            const batchCost = state.breadMarket.cost * amount;
+            
             if(state.money >= batchCost) {
                 state.money -= batchCost;
-                state.bread += 10;
-                autoBought = 10;
+                state.bread += amount;
+                autoBought = amount;
             }
         }
     }
@@ -484,7 +507,6 @@ function gameTick() {
     let demandMod = 1.0;
     if(state.news.active && state.news.type === 'demand') demandMod = state.news.val;
     
-    // Demand calculation updated for new price range
     const baseDemand = 300; 
     const demand = Math.floor((baseDemand * demandMod) / Math.pow(state.userPrice, 1.5));
     
@@ -650,6 +672,12 @@ function init() {
     setInterval(gameTick, CONFIG.tickRate);
 }
 
+// Function to set batch size from buttons
+function setBatch(size) {
+    state.autoBuy.batchSize = size;
+    updateUI();
+}
+
 function getUnitDesc(u) {
     if(u.heatGen) return `+${u.heatGen*5} Heat / 5s`;
     if(u.money) return `-$${u.money*5} -> +${u.bread*5} Bread / 5s`;
@@ -676,9 +704,24 @@ function updateUI() {
     const bCost = state.breadMarket.cost;
     el('cost-bread-market').textContent = (bCost * 10).toFixed(2); 
     
-    // Auto Buy
+    // Auto Buy Logic & Visibility
     if(state.ai.supply > 0) {
         el('auto-supply-panel').style.display = 'block';
+        el('disp-batch-size').textContent = state.autoBuy.batchSize;
+        
+        // Show/Hide Batch buttons based on level
+        el('batch-100').style.display = state.ai.supply >= 2 ? 'block' : 'none';
+        el('batch-1000').style.display = state.ai.supply >= 3 ? 'block' : 'none';
+        el('batch-10000').style.display = state.ai.supply >= 4 ? 'block' : 'none';
+
+        // Update active class for buttons
+        ['10', '100', '1000', '10000'].forEach(val => {
+            const btn = el('batch-' + val);
+            if(parseInt(val) === state.autoBuy.batchSize) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+
+        // Price Trend
         const pDisp = el('disp-current-price');
         pDisp.textContent = '$' + bCost.toFixed(2);
         pDisp.style.color = (bCost <= state.autoBuy.threshold) ? 'var(--success)' : 'var(--danger)';
@@ -689,6 +732,11 @@ function updateUI() {
         else { tDisp.textContent = '—'; tDisp.style.color = 'gray'; }
 
         el('disp-price-history').textContent = state.breadMarket.history.map(p => '$'+p.toFixed(2)).join(' → ');
+
+        // Batch Cost Calculation
+        const currentBatchCost = bCost * state.autoBuy.batchSize;
+        el('val-auto-cost').textContent = '$' + currentBatchCost.toFixed(2);
+        el('val-auto-cost').style.color = (state.money >= currentBatchCost) ? 'var(--text-main)' : 'var(--danger)';
     }
 
     // Stocks
@@ -704,6 +752,7 @@ function updateUI() {
     el('stat-sold').textContent = state.lastStats.sold;
     el('stat-produced').textContent = state.lastStats.produced;
     el('stat-bread-cost').textContent = '$' + state.breadMarket.cost.toFixed(2);
+    el('stat-bread-bought').textContent = state.lastStats.breadBought;
     el('stat-stock-trend').innerHTML = state.lastStats.stockDelta >= 0 
         ? `<span style="color:var(--success)">▲ $${state.lastStats.stockDelta.toFixed(2)}</span>` 
         : `<span style="color:var(--danger)">▼ $${state.lastStats.stockDelta.toFixed(2)}</span>`;
