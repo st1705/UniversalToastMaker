@@ -28,11 +28,20 @@ const NEWS_ARTICLES = [
     { text: "CRUST INC. CEO caught eating a bagel.", type: 'stock', id: 'crust', val: 0.7, effText: "CRUST Stock Crash" },
     { text: "BUTR LOGISTICS invents friction-less butter.", type: 'stock', id: 'butr', val: 1.3, effText: "BUTR Stock Surge" },
     { text: "Viral TikTok challenge: 'The Infinite Toast'.", type: 'demand', val: 1.3, effText: "Demand Up (130%)" },
+    { text: "Artisan sourdough craze: queues form outside bakeries.", type: 'demand', val: 1.4, effText: "Demand Up (140%)" },
+    { text: "Toaster recall after overheating reports.", type: 'demand', val: 0.7, effText: "Demand Down (70%)" },
+    { text: "New 'zero-crust' loaf reduces waste and price.", type: 'bread', val: 0.75, effText: "Bread Cost Down (75%)" },
+    { text: "'Toast Art' auction sells pieces for thousands.", type: 'demand', val: 1.6, effText: "Demand Spike (160%)" },
+    { text: "Gluten-free boom: premium breads skyrocket.", type: 'bread', val: 1.5, effText: "Bread Cost Up (150%)" },
+    { text: "Yeast Dynamics wins award for sustainable yeast.", type: 'stock', id: 'yeast', val: 1.25, effText: "YEAST Stock Rise" },
+    { text: "Midnight toast clubs cause morning bread shortages.", type: 'bread', val: 1.8, effText: "Bread Cost Surge" },
+    { text: "DIY sourdough starter trend reduces store purchases.", type: 'demand', val: 0.8, effText: "Demand Slightly Down (80%)" },
+    { text: "Butter tariffs cut profits for spread suppliers.", type: 'stock', id: 'butr', val: 0.85, effText: "BUTR Stock Slide" }
 ];
 
 /* ---------------- STATE ---------------- */
 let state = {
-    money: 50,
+    money: 30,
     loan: 0,
     bread: 20,
     toast: 0,
@@ -40,9 +49,9 @@ let state = {
     units: { toaster: 0, industrial: 0, synth: 0, furnace: 0, fusion: 0 },
     ai: { eff: 0, gen: 0, supply: 0, mkt: 0 },
     stocks: [
-        { id: 'crust', name: 'CRUST INC.', price: 25.00, owned: 0, color: '#f59e0b' },
-        { id: 'butr', name: 'BUTR LOGISTICS', price: 15.00, owned: 0, color: '#3b82f6' },
-        { id: 'yeast', name: 'YEAST DYNAMICS', price: 5.00, owned: 0, color: '#a855f7' }
+        { id: 'crust', name: 'CRUST INC.', price: Math.random(18, 28), owned: 0, color: '#f59e0b' },
+        { id: 'butr', name: 'BUTR LOGISTICS', price: Math.random(8, 18), owned: 0, color: '#3b82f6' },
+        { id: 'yeast', name: 'YEAST DYNAMICS', price: Math.random(2, 8), owned: 0, color: '#a855f7' }
     ],
     news: { active: false, type: 'none', val: 1, text: '' },
     newsTimer: 0,
@@ -68,7 +77,7 @@ function gameTick() {
     // 1. LOAN INTEREST
     let interestCharge = 0;
     if(state.loan > 0) {
-        interestCharge = Math.ceil(state.loan * 0.02); // 2% per tick
+        interestCharge = Math.ceil(state.loan * 0.005); // 0.5% per tick
         state.loan += interestCharge;
     }
 
