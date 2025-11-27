@@ -49,9 +49,9 @@ let state = {
     units: { toaster: 0, industrial: 0, synth: 0, furnace: 0, fusion: 0 },
     ai: { eff: 0, gen: 0, supply: 0, mkt: 0 },
     stocks: [
-        { id: 'crust', name: 'CRUST INC.', price: Math.random(18, 28), owned: 0, color: '#f59e0b' },
-        { id: 'butr', name: 'BUTR LOGISTICS', price: Math.random(8, 18), owned: 0, color: '#3b82f6' },
-        { id: 'yeast', name: 'YEAST DYNAMICS', price: Math.random(2, 8), owned: 0, color: '#a855f7' }
+        { id: 'crust', name: 'CRUST INC.', price: 18 + Math.random() * (28 - 18), owned: 0, color: '#f59e0b' },
+        { id: 'butr', name: 'BUTR LOGISTICS', price: 8 + Math.random() * (18 - 8), owned: 0, color: '#3b82f6' },
+        { id: 'yeast', name: 'YEAST DYNAMICS', price: 2 + Math.random() * (2 - 8), color: '#a855f7' }
     ],
     news: { active: false, type: 'none', val: 1, text: '' },
     newsTimer: 0,
