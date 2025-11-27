@@ -51,7 +51,7 @@ let state = {
     stocks: [
         { id: 'crust', name: 'CRUST INC.', price: 18 + Math.random() * (28 - 18), owned: 0, color: '#f59e0b' },
         { id: 'butr', name: 'BUTR LOGISTICS', price: 8 + Math.random() * (18 - 8), owned: 0, color: '#3b82f6' },
-        { id: 'yeast', name: 'YEAST DYNAMICS', price: 2 + Math.random() * (2 - 8), color: '#a855f7' }
+        { id: 'yeast', name: 'YEAST DYNAMICS', price: 2 + Math.random() * (8 - 2), color: '#a855f7' }
     ],
     news: { active: false, type: 'none', val: 1, text: '' },
     newsTimer: 0,
